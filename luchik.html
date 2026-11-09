@@ -1,0 +1,790 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Лучик и Энергожоры</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Marmelad&family=Nunito:wght@600;800&display=swap" rel="stylesheet">
+<style>
+/* Concept: яркая мультяшная игра — один экран-комната, сверху панель, внизу Лучик говорит подсказки */
+:root{
+  --ink:#3a2d4d; --sun:#ffc93c; --sun2:#ff9f1c; --sky:#8fd3f4; --mint:#4fc3a1; --berry:#e8505b;
+  --paper:#fff8e7; --night:#2b2350; --card:#ffffff; --muted:#7a6c8f;
+  --f-display:'Marmelad','Trebuchet MS','Segoe UI',sans-serif; --f-body:'Nunito','Segoe UI',system-ui,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{background:var(--night);color:var(--ink);font-family:var(--f-body);font-weight:600;
+  padding-block:0;padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px));
+  -webkit-tap-highlight-color:transparent;overflow-x:hidden}
+button{font:inherit;color:inherit;cursor:pointer}
+h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance}
+#app{max-width:1180px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;padding-block:10px}
+.screen{flex:1;display:flex;flex-direction:column;min-height:0}
+
+/* ---------- кнопки ---------- */
+.btn{border:3px solid var(--ink);background:var(--sun);color:var(--ink);font-family:var(--f-display);font-size:1.25rem;
+  padding:.55em 1.4em;border-radius:999px;box-shadow:0 5px 0 var(--ink);transition:transform .08s,box-shadow .08s}
+.btn:hover{background:#ffd75e}
+.btn:active{transform:translateY(4px);box-shadow:0 1px 0 var(--ink)}
+.btn:focus-visible,.chip:focus-visible,.obj:focus-visible .hit{outline:4px solid #fff;outline-offset:2px}
+.btn.alt{background:#fff}
+.chip{border:3px solid var(--ink);background:#fff;border-radius:14px;padding:.35em .7em;font-family:var(--f-display);font-size:1rem;box-shadow:0 3px 0 var(--ink)}
+.chip:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
+.chip[disabled]{opacity:.45;cursor:default}
+
+/* ---------- титульный экран ---------- */
+#title{position:relative;border-radius:28px;overflow:hidden;border:4px solid var(--ink);
+  background:radial-gradient(circle at 50% 38%,#ffe27a 0,#ffc24a 22%,rgba(255,194,74,0) 46%),linear-gradient(#5f4bb6 0,#8a6ad8 45%,#f08bb0 100%);
+  align-items:center;justify-content:center;text-align:center;padding:28px 16px 24px;gap:10px;isolation:isolate}
+#title .stars{position:absolute;inset:0;z-index:-1;pointer-events:none}
+.tt-mascot{width:min(210px,40vw);animation:float 3s ease-in-out infinite;filter:drop-shadow(0 8px 0 rgba(58,45,77,.25))}
+.tt-h{font-size:clamp(2.2rem,7vw,4.4rem);line-height:1;color:#fff;-webkit-text-stroke:0;text-shadow:0 4px 0 var(--ink),3px 0 0 var(--ink),-3px 0 0 var(--ink),0 -3px 0 var(--ink),3px 3px 0 var(--ink),-3px 3px 0 var(--ink)}
+.tt-h em{font-style:normal;color:var(--sun)}
+.tt-sub{max-width:34em;font-size:clamp(1rem,2.6vw,1.2rem);color:#fff;text-shadow:0 2px 0 rgba(58,45,77,.6);font-weight:800}
+.name-row{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:center;margin-top:6px}
+.name-row label{color:#fff;font-weight:800;text-shadow:0 2px 0 rgba(58,45,77,.6)}
+.name-row input{border:3px solid var(--ink);border-radius:14px;padding:.5em .8em;font:inherit;font-weight:800;width:min(260px,70vw);background:#fff;color:var(--ink)}
+.how{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:8px;padding:0;list-style:none}
+.how li{background:rgba(255,255,255,.92);border:3px solid var(--ink);border-radius:16px;padding:.5em .9em;font-size:.95rem;max-width:15em;text-align:left;line-height:1.25}
+.how b{font-family:var(--f-display);font-weight:400;display:block;font-size:1.05rem}
+.ge{position:absolute;width:clamp(70px,13vw,130px);bottom:12px;animation:bob 2.4s ease-in-out infinite}
+.ge.l{left:3%}.ge.r{right:3%;animation-delay:-1.2s;transform:scaleX(-1)}
+@keyframes float{50%{transform:translateY(-12px) rotate(2deg)}}
+@keyframes bob{50%{translate:0 -10px}}
+
+/* ---------- игровой экран ---------- */
+.hud{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;padding:4px 2px 10px}
+.hud .lvl{font-family:var(--f-display);font-size:1.35rem;color:#fff;flex:1 1 auto;min-width:9em}
+.hud .lvl small{display:block;font-family:var(--f-body);font-size:.8rem;color:#c9bfe8;font-weight:800;letter-spacing:.04em;text-transform:uppercase}
+.found{display:flex;gap:5px;align-items:center}
+.found i{width:22px;height:22px;border-radius:50%;border:3px solid var(--ink);background:#5a4a80;display:block;transition:.2s}
+.found i.ok{background:var(--mint);transform:scale(1.15)}
+.tank{display:flex;align-items:center;gap:8px;flex:1 1 200px;max-width:340px}
+.tank svg{width:30px;flex:none}
+.bar{flex:1;height:26px;border:3px solid var(--ink);border-radius:999px;background:#fff;overflow:hidden;position:relative}
+.bar>div{height:100%;width:100%;background:linear-gradient(90deg,#ffb52e,#ffe14d);transition:background .3s;border-right:3px solid var(--ink);transform-origin:left}
+.bar.low>div{background:linear-gradient(90deg,#e8505b,#ff8b5e);animation:warn .6s infinite alternate}
+@keyframes warn{to{filter:brightness(1.25)}}
+#stageWrap{position:relative;border-radius:24px;border:4px solid var(--ink);overflow:hidden;background:#222;box-shadow:0 8px 0 rgba(0,0,0,.25);touch-action:manipulation}
+#stage{display:block;width:100%;height:auto;aspect-ratio:12/7;user-select:none;-webkit-user-select:none}
+.bubble{display:flex;gap:12px;align-items:center;margin-top:12px;background:var(--paper);border:3px solid var(--ink);border-radius:20px;padding:8px 14px 8px 8px;box-shadow:0 5px 0 rgba(0,0,0,.25);min-height:78px}
+.bubble svg{width:56px;flex:none}
+.bubble p{margin:0;font-size:clamp(.95rem,2.4vw,1.1rem);line-height:1.3;font-weight:800}
+
+/* ---------- сцена ---------- */
+.obj{cursor:pointer;outline:none}
+.obj .off{display:none}
+.obj.fixed .on{display:none}
+.obj.fixed .off{display:inline}
+.hit{fill:transparent;stroke:transparent;stroke-width:4;stroke-linejoin:round}
+.obj:not(.fixed):not(.decoy):hover .on{filter:brightness(1.1)}
+.obj.shake{animation:shake .4s}
+@keyframes shake{20%{transform:translateX(-7px)}40%{transform:translateX(7px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+.ring{fill:none;stroke:#fff;stroke-width:6;stroke-dasharray:14 10;animation:ringspin 1.4s linear infinite,ringpulse .7s ease-in-out infinite alternate;pointer-events:none;filter:drop-shadow(0 0 6px #3a2d4d)}
+@keyframes ringspin{to{stroke-dashoffset:-48}}
+@keyframes ringpulse{to{opacity:.55}}
+.glow,.nopt{pointer-events:none}
+.glow{animation:pulse 1.8s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes pulse{50%{opacity:.6;transform:scale(1.07)}}
+.flow{stroke-dasharray:16 12;animation:flow .45s linear infinite}
+@keyframes flow{to{stroke-dashoffset:-28}}
+.rise{animation:rise 2.4s ease-in infinite;transform-box:fill-box;transform-origin:center}
+.rise.d1{animation-delay:-.8s}.rise.d2{animation-delay:-1.6s}
+@keyframes rise{0%{transform:translateY(14px) scale(.6);opacity:0}30%{opacity:.9}100%{transform:translateY(-46px) scale(1.4);opacity:0}}
+.blink{animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:.15}}
+.spin{animation:spin 1.3s linear infinite;transform-box:fill-box;transform-origin:center}
+@keyframes spin{to{transform:rotate(360deg)}}
+.sway{animation:sway 3s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 0}
+@keyframes sway{50%{transform:skewX(-4deg)}}
+.drip{animation:drip 1s ease-in infinite}
+@keyframes drip{0%{transform:translateY(0);opacity:1}100%{transform:translateY(34px);opacity:.2}}
+.wind{stroke-dasharray:30 24;animation:flow .8s linear infinite}
+.flick{animation:flick 1.2s steps(3) infinite}
+@keyframes flick{50%{opacity:.04}}
+.pop{animation:popfx .7s ease-out forwards;transform-box:fill-box;transform-origin:center;pointer-events:none}
+@keyframes popfx{0%{transform:scale(.2);opacity:1}100%{transform:scale(2.2);opacity:0}}
+.tw{animation:tw 2.2s ease-in-out infinite}
+@keyframes tw{50%{opacity:.25}}
+
+/* ---------- окна ---------- */
+#modal{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:rgba(43,35,80,.72);padding:16px;overflow-y:auto}
+#modal[hidden]{display:none}
+.card{position:relative;background:var(--paper);border:4px solid var(--ink);border-radius:26px;box-shadow:0 8px 0 rgba(0,0,0,.35);max-width:560px;width:100%;padding:22px 22px 20px;text-align:center;display:flex;flex-direction:column;gap:12px;align-items:center;animation:cardin .28s ease-out;margin:auto}
+@keyframes cardin{from{transform:translateY(18px) scale(.94);opacity:0}}
+.card h2{font-size:clamp(1.5rem,5vw,2rem);line-height:1.1}
+.card p{margin:0;font-size:1.08rem;line-height:1.4}
+.card .mas{width:96px}
+.card .tag{font-family:var(--f-display);background:var(--mint);color:#fff;border:3px solid var(--ink);border-radius:999px;padding:.1em .8em;text-shadow:0 2px 0 rgba(58,45,77,.5)}
+.card .row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.stars3{display:flex;gap:6px}.stars3 svg{width:64px}
+.stars3 svg.pop3{animation:starin .5s cubic-bezier(.3,1.6,.5,1) both}
+@keyframes starin{from{transform:scale(0) rotate(-90deg)}}
+.fact-ico{width:92px}
+.cert{background:#fffdf3;border:6px double var(--sun2);outline:4px solid var(--ink);outline-offset:-1px;border-radius:12px;padding:18px 14px;width:100%}
+.cert h2{color:var(--berry)}
+.cert .who{font-family:var(--f-display);font-size:clamp(1.6rem,6vw,2.4rem);margin:6px 0;border-bottom:3px dotted var(--ink);display:inline-block;padding:0 .5em;overflow-wrap:anywhere}
+.rules{text-align:left;margin:0;padding-left:1.2em;font-size:1rem;line-height:1.45}
+.rules li{margin:2px 0}
+.rooms{display:grid;grid-template-columns:repeat(2,1fr);gap:4px 14px;margin-top:8px;font-size:.95rem}
+.rooms div{display:flex;align-items:center;justify-content:space-between;gap:6px;border-bottom:2px dotted #d9cfa8;padding:2px 0}
+.rooms span{display:flex}
+.top-right{position:absolute;top:10px;right:10px}
+
+@media (max-width:640px){
+  .hud .lvl{font-size:1.1rem}
+  .tank{max-width:none;flex-basis:100%;order:5}
+  .bubble{padding:6px 10px 6px 6px}.bubble svg{width:44px}
+  .ge{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  .tt-mascot,.ge,.glow,.rise,.blink,.sway,.flick,.tw,.drip,.bar.low>div,.ring{animation:none}
+  .flow,.wind{animation-duration:2s}
+}
+</style>
+
+</head>
+<body>
+<div id="app">
+  <section id="title" class="screen" aria-label="Начало игры">
+    <svg class="stars" viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <g fill="#fff6c8">
+        <path class="tw" d="M90 80l6 14 14 6-14 6-6 14-6-14-14-6 14-6z"/>
+        <path class="tw" style="animation-delay:-.7s" d="M700 60l5 11 11 5-11 5-5 11-5-11-11-5 11-5z"/>
+        <path class="tw" style="animation-delay:-1.4s" d="M610 190l4 9 9 4-9 4-4 9-4-9-9-4 9-4z"/>
+        <path class="tw" style="animation-delay:-1s" d="M170 230l4 9 9 4-9 4-4 9-4-9-9-4 9-4z"/>
+        <circle class="tw" cx="400" cy="40" r="4"/><circle class="tw" style="animation-delay:-.5s" cx="300" cy="120" r="3"/><circle class="tw" style="animation-delay:-1.8s" cx="520" cy="90" r="3"/>
+      </g>
+      <path d="M0 500V430q80-60 180-30t200-20q110-14 190 20t230-18V500z" fill="#3b2f66" opacity=".55"/>
+      <path d="M0 500V455q120-40 230-10t220 0q130 30 350-10V500z" fill="#2b2350" opacity=".7"/>
+    </svg>
+    <div class="ge l" id="geL"></div><div class="ge r" id="geR"></div>
+    <div class="tt-mascot" id="ttMascot"></div>
+    <h1 class="tt-h">Лучик и <em>Энергожоры</em></h1>
+    <p class="tt-sub">В доме поселились Энергожоры. Они любят, когда свет горит зря, вода течёт и всё гудит без дела. Помоги Лучику найти их во всех комнатах!</p>
+    <div class="name-row">
+      <label for="nameIn">Как тебя зовут? Имя будет на дипломе</label>
+      <input id="nameIn" maxlength="28" autocomplete="off" placeholder="Например, Маша">
+    </div>
+    <button class="btn" id="startBtn" style="margin-top:6px">Играть</button>
+    <ul class="how">
+      <li><b>Нажимай</b>на то, что тратит энергию зря</li>
+      <li><b>Не трогай</b>то, что нужно людям прямо сейчас</li>
+      <li><b>Следи</b>за зарядом: пока Энергожоры на свободе, он тает</li>
+    </ul>
+  </section>
+
+  <section id="game" class="screen" hidden>
+    <div class="hud">
+      <div class="lvl"><small id="lvlNo"></small><span id="lvlName"></span></div>
+      <div class="found" id="found" aria-label="Найдено Энергожоров"></div>
+      <div class="tank">
+        <svg viewBox="0 0 30 40" aria-hidden="true"><path d="M17 2L4 23h9l-3 15L26 15h-10z" fill="#ffc93c" stroke="#3a2d4d" stroke-width="3" stroke-linejoin="round"/></svg>
+        <div class="bar" id="bar" role="progressbar" aria-label="Заряд энергии" aria-valuemin="0" aria-valuemax="100"><div id="barFill"></div></div>
+      </div>
+      <button class="chip" id="hintBtn">Подсказка <span id="hintN">3</span></button>
+      <button class="chip" id="sndBtn" aria-label="Звук" title="Звук">Звук: вкл</button>
+    </div>
+    <div id="stageWrap"><svg id="stage" viewBox="0 0 1200 700" role="group" aria-label="Комната"></svg></div>
+    <div class="bubble"><div id="bubMas"></div><p id="bubTxt"></p></div>
+  </section>
+</div>
+<div id="modal" hidden></div>
+<script>
+"use strict";
+/* ===== помощники рисования ===== */
+const OL='#3a2d4d';
+const st=(w=3)=>`stroke="${OL}" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round"`;
+const R=(x,y,w,h,f,r=8,sw=3)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="${f}" ${st(sw)}/>`;
+const Cc=(x,y,r,f,sw=3,ex='')=>`<circle cx="${x}" cy="${y}" r="${r}" fill="${f}" ${sw?st(sw):''} ${ex}/>`;
+const El=(x,y,rx,ry,f,sw=3,ex='')=>`<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="${f}" ${sw?st(sw):''} ${ex}/>`;
+const Pa=(d,f,sw=3,ex='')=>`<path d="${d}" fill="${f}" ${sw?st(sw):''} ${ex}/>`;
+const Ln=(x1,y1,x2,y2,c=OL,w=3,ex='')=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${c}" stroke-width="${w}" stroke-linecap="round" ${ex}/>`;
+const Tx=(x,y,t,sz,f,a='middle',ex='')=>`<text x="${x}" y="${y}" font-family="Marmelad,Trebuchet MS,sans-serif" font-size="${sz}" fill="${f}" text-anchor="${a}" ${ex}>${t}</text>`;
+const Stroke=(d,c,w,ex='')=>`<path d="${d}" fill="none" stroke="${c}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" ${ex}/>`;
+/* контурная трубка: тёмная обводка + цвет сверху */
+const Tube=(d,c,w)=>Stroke(d,OL,w+6)+Stroke(d,c,w);
+
+function obj(id,lab,b,on,off,cls=''){
+  const [x,y,w,h]=b;
+  return `<g class="obj ${cls}" id="o-${id}" data-id="${id}" tabindex="0" role="button" aria-label="${lab}"><g class="on">${on||''}</g><g class="off">${off||''}</g><rect class="hit" x="${x}" y="${y}" width="${w}" height="${h}" rx="16"/></g>`;
+}
+
+const DEFS=`<defs>
+<radialGradient id="gGlow"><stop offset="0" stop-color="#fff6b0" stop-opacity=".95"/><stop offset=".5" stop-color="#ffe066" stop-opacity=".42"/><stop offset="1" stop-color="#ffe066" stop-opacity="0"/></radialGradient>
+<radialGradient id="gSun"><stop offset="0" stop-color="#fffbc4"/><stop offset="1" stop-color="#ffd23c"/></radialGradient>
+<radialGradient id="gRed"><stop offset="0" stop-color="#ff7a4d" stop-opacity=".9"/><stop offset="1" stop-color="#ff7a4d" stop-opacity="0"/></radialGradient>
+<radialGradient id="gCold"><stop offset="0" stop-color="#bfeaff" stop-opacity=".95"/><stop offset="1" stop-color="#bfeaff" stop-opacity="0"/></radialGradient>
+<linearGradient id="gSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6fc3f0"/><stop offset="1" stop-color="#dcf4ff"/></linearGradient>
+<linearGradient id="gSnow" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a9c8e8"/><stop offset="1" stop-color="#eef6ff"/></linearGradient>
+<linearGradient id="gBeam" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity=".12"/></linearGradient>
+<linearGradient id="gShade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".16"/></linearGradient>
+</defs>`;
+
+/* ===== Лучик ===== */
+function mascot(mood='happy'){
+  const mouth = mood==='oops' ? `<ellipse cx="50" cy="62" rx="6" ry="7" fill="#8b2c3b" ${st(3)}/>`
+    : mood==='wow' ? `<path d="M38 56Q50 76 62 56Z" fill="#8b2c3b" ${st(3)}/><path d="M43 66Q50 61 57 66Q50 71 43 66Z" fill="#ff8a8a"/>`
+    : `<path d="M38 57Q50 71 62 57Z" fill="#8b2c3b" ${st(3)}/><path d="M43 64Q50 60 57 64Q50 68 43 64Z" fill="#ff8a8a"/>`;
+  const brow = mood==='oops' ? `<path d="M33 35l12 4M67 35l-12 4" ${st(3)} fill="none"/>` : '';
+  return `<svg viewBox="0 0 100 126" aria-hidden="true">
+  <ellipse cx="50" cy="122" rx="26" ry="3.5" fill="#000" opacity=".16"/>
+  <ellipse cx="39" cy="115" rx="11" ry="6" fill="#ff9f1c" ${st(3)}/><ellipse cx="61" cy="115" rx="11" ry="6" fill="#ff9f1c" ${st(3)}/>
+  <rect x="35" y="80" width="30" height="30" rx="7" fill="#c3bfd3" ${st(3)}/>
+  <path d="M36 91h28M36 100h28" ${st(3)} fill="none"/><path d="M42 110h16" stroke="${OL}" stroke-width="3" fill="none"/>
+  <path d="M17 70Q3 66 8 52" ${st(4)} fill="none"/><circle cx="8" cy="51" r="5" fill="#ffd43b" ${st(3)}/>
+  <path d="M83 70Q97 66 92 52" ${st(4)} fill="none"/><circle cx="92" cy="51" r="5" fill="#ffd43b" ${st(3)}/>
+  <circle cx="50" cy="48" r="36" fill="#ffd43b" ${st(3.5)}/>
+  <path d="M22 62Q50 100 78 62Q80 78 50 84Q20 78 22 62Z" fill="#f4b81f" opacity=".55"/>
+  <ellipse cx="33" cy="30" rx="8" ry="14" fill="#fff6b8" opacity=".85" transform="rotate(28 33 30)"/>
+  <path d="M52 14l-8-11 11 3-3-10" fill="#ff9f1c" ${st(3)} transform="translate(0 0)"/>
+  <ellipse cx="39" cy="46" rx="6" ry="8" fill="${OL}"/><ellipse cx="61" cy="46" rx="6" ry="8" fill="${OL}"/>
+  <circle cx="41" cy="43" r="2.4" fill="#fff"/><circle cx="63" cy="43" r="2.4" fill="#fff"/>
+  <circle cx="28" cy="58" r="5.5" fill="#ff8f9d" opacity=".75"/><circle cx="72" cy="58" r="5.5" fill="#ff8f9d" opacity=".75"/>
+  ${brow}${mouth}</svg>`;
+}
+/* ===== Энергожор ===== */
+function gremlin(){
+  return `<svg viewBox="0 0 100 100" aria-hidden="true">
+  <path d="M22 24l-8-16 18 8M78 24l8-16-18 8" fill="#5b3fa8" ${st(3)}/>
+  <path d="M50 14C20 14 10 40 12 66c2 20 18 28 38 28s36-8 38-28C90 40 80 14 50 14Z" fill="#7d5fd0" ${st(3.5)}/>
+  <path d="M20 70Q50 98 80 70Q82 88 50 92Q18 88 20 70Z" fill="#5b3fa8" opacity=".55"/>
+  <circle cx="36" cy="42" r="11" fill="#fff" ${st(3)}/><circle cx="64" cy="42" r="11" fill="#fff" ${st(3)}/>
+  <circle cx="39" cy="44" r="5" fill="${OL}"/><circle cx="61" cy="44" r="5" fill="${OL}"/>
+  <path d="M26 30l16 6M74 30l-16 6" ${st(3.5)} fill="none"/>
+  <path d="M28 62Q50 86 72 62Q50 68 28 62Z" fill="#3a1d4a" ${st(3)}/>
+  <path d="M35 64l4 8 4-7M57 65l4 7 4-8" fill="#fff" ${st(2.5)}/>
+  <path d="M8 66l-6 8M92 66l6 8" ${st(4)} fill="none"/>
+  </svg>`;
+}
+function star(on=true,sz=64){
+  return `<svg viewBox="0 0 64 64" width="${sz}" aria-hidden="true"><path d="M32 5l8 18 20 2-15 13 5 20-18-10-18 10 5-20L4 25l20-2z" fill="${on?'#ffc93c':'#d9d2e6'}" ${st(3.5)}/>${on?'<path d="M24 20l5-9" stroke="#fff7c2" stroke-width="3.5" stroke-linecap="round"/>':''}</svg>`;
+}
+
+/* ===== окно ===== */
+function win(x,y,w,h,o={}){
+  let s='';
+  s+=`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${o.winter?'url(#gSnow)':'url(#gSky)'}"/>`;
+  if(o.winter){
+    s+=Pa(`M${x} ${y+h*.72}Q${x+w*.3} ${y+h*.6} ${x+w*.55} ${y+h*.72}T${x+w} ${y+h*.68}V${y+h}H${x}Z`,'#fff',0);
+    s+=Pa(`M${x+w*.15} ${y+h*.78}l${w*.12} -${h*.16}l${w*.12} ${h*.16}Z`,'#8fb7d8',0);
+    for(let i=0;i<9;i++) s+=Cc(x+14+(i*37)%(w-24),y+14+(i*53)%(h*.6),3.2,'#fff',0,`class="tw" style="animation-delay:-${(i*.37).toFixed(2)}s"`);
+  }else{
+    s+=Cc(x+w*.74,y+h*.27,h*.13,'url(#gSun)',0);
+    s+=El(x+w*.28,y+h*.3,w*.14,h*.06,'#fff',0)+El(x+w*.22,y+h*.34,w*.09,h*.05,'#fff',0);
+    s+=Pa(`M${x} ${y+h}V${y+h*.74}Q${x+w*.25} ${y+h*.6} ${x+w*.5} ${y+h*.76}T${x+w} ${y+h*.7}V${y+h}Z`,'#7fd17a',0);
+  }
+  s+=`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="url(#gShade)"/>`;
+  s+=`<rect x="${x-6}" y="${y-6}" width="${w+12}" height="${h+12}" rx="4" fill="none" ${st(4)} />`;
+  s+=`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="none" stroke="#fffaf0" stroke-width="12"/>`;
+  s+=`<rect x="${x-12}" y="${y-12}" width="${w+24}" height="${h+24}" rx="6" fill="none" ${st(3.5)}/>`;
+  s+=R(x+w/2-5,y,10,h,'#fffaf0',2)+R(x,y+h*.45,w,10,'#fffaf0',2);
+  s+=R(x-20,y+h+10,w+40,14,'#fffaf0',6);
+  return s;
+}
+function curtains(x,y,w,h,c1,c2){
+  return Ln(x-26,y-24,x+w+26,y-24,OL,6)
+   +Pa(`M${x-18} ${y-24}H${x+38}Q${x+24} ${y+h*.45} ${x+40} ${y+h+4}H${x-18}Z`,c1)
+   +Pa(`M${x+w+18} ${y-24}H${x+w-38}Q${x+w-24} ${y+h*.45} ${x+w-40} ${y+h+4}H${x+w+18}Z`,c1)
+   +Pa(`M${x+4} ${y-18}Q${x+14} ${y+h*.4} ${x+8} ${y+h}`,'none',3,`stroke="${c2}"`)
+   +Pa(`M${x+w-4} ${y-18}Q${x+w-14} ${y+h*.4} ${x+w-8} ${y+h}`,'none',3,`stroke="${c2}"`);
+}
+function floorBase(y,c1,c2,seam){
+  let s=`<rect x="0" y="${y}" width="1200" height="${700-y}" fill="${c1}"/>`;
+  for(let r=0;r<5;r++){const yy=y+36+r*40; s+=`<line x1="0" x2="1200" y1="${yy}" y2="${yy}" stroke="${seam}" stroke-width="3"/>`;
+    for(let x=(r%2)*70;x<1200;x+=140) s+=`<line x1="${x}" x2="${x}" y1="${yy-40>y?yy-40:y}" y2="${yy}" stroke="${seam}" stroke-width="3"/>`;}
+  s+=`<rect x="0" y="${y-20}" width="1200" height="24" fill="${c2}" ${st(3)}/>`;
+  s+=`<rect x="0" y="${y+4}" width="1200" height="30" fill="url(#gShade)" opacity=".7"/>`;
+  return s;
+}
+const LEVELS=[];
+
+/* ===================== 1. КУХНЯ ===================== */
+LEVELS.push({
+  id:'kitchen', name:'Кухня', sub:'Комната 1 из 4',
+  intro:'Мы на кухне! Здесь прячутся шесть Энергожоров. Ищи то, что тратит энергию зря. Но осторожно: пирог в духовке печётся не зря!',
+  items:{
+    lamp:{lab:'Лампа',title:'Свет днём',fact:'За окном светло, а лампа горит. Электричество тратится зря. Выходишь из комнаты или светло от окна — выключай свет!'},
+    fridge:{lab:'Холодильник',title:'Открытый холодильник',fact:'Из открытой дверцы уходит холод, и холодильнику приходится работать вдвое усерднее. Достал, что нужно, и сразу закрывай.'},
+    tap:{lab:'Кран',title:'Текущая вода',fact:'Воду нужно очистить, нагреть и подать в дом, а на это тратится энергия. Закрывай кран, если вода не нужна.'},
+    kettle:{lab:'Чайник',title:'Лишний кипяток',fact:'Чайник кипит, а чаю никто не ждёт. Вскипяти ровно столько воды, сколько нужно. Тогда не будет лишней работы.'},
+    plug:{lab:'Зарядка в розетке',title:'Зарядка без телефона',fact:'Зарядка в розетке понемногу потребляет ток, даже если телефон не подключён. Закончил заряжать — вытащи вилку.'},
+    burner:{lab:'Конфорка',title:'Пустая конфорка',fact:'Конфорка греет воздух, а не еду. Включай плиту, только когда на ней стоит посуда.'}
+  },
+  decoys:{oven:'Тут всё правильно: в духовке печётся пирог, и энергия нужна. Не выключай!'},
+  draw(){
+    let s='';
+    s+=`<rect width="1200" height="520" fill="#ffdcae"/>`;
+    for(let x=0;x<1200;x+=120) s+=`<rect x="${x}" y="0" width="60" height="520" fill="#ffd0a0" opacity=".45"/>`;
+    s+=`<rect x="330" y="286" width="470" height="96" fill="#cdeef3" ${st(3)}/>`;
+    for(let x=376;x<800;x+=46) s+=Ln(x,288,x,380,'#9fd2dc',2);
+    for(let y=312;y<380;y+=28) s+=Ln(332,y,798,y,'#9fd2dc',2);
+    s+=floorBase(520,'#d99a5b','#fff3df','#c4824a');
+    s+=El(600,625,300,46,'#e8505b',3)+El(600,625,236,32,'none',0,'stroke="#fff3df" stroke-width="5" stroke-dasharray="3 14" stroke-linecap="round"')+El(600,625,170,20,'#f27a85',0);
+    s+=win(840,80,230,190,{})+curtains(840,80,230,190,'#ff9aa2','#e8505b');
+    s+=R(300,200,262,12,'#b97a45',4)+R(318,160,40,40,'#8fd6c4',6)+R(366,172,34,28,'#ffd43b',6)+R(410,150,44,50,'#fff',6)+R(412,150,40,14,'#e8505b',4)+R(464,168,30,32,'#ff9aa2',6)+R(502,180,40,20,'#8fb7ff',6);
+    s+=Cc(700,140,30,'#fffdf4',4)+Ln(700,140,700,120,OL,4)+Ln(700,140,716,148,OL,4)+Cc(700,140,3,OL,0);
+    // холодильник
+    const fr=`<rect x="44" y="518" width="30" height="10" rx="3" fill="#6d7a90" ${st(3)}/><rect x="216" y="518" width="30" height="10" rx="3" fill="#6d7a90" ${st(3)}/>`;
+    const fOff=fr+R(50,130,190,392,'#eaf4ff',18)+Ln(50,282,240,282)+R(204,162,14,92,'#9fb4cc',7)+R(204,308,14,128,'#9fb4cc',7)
+      +Cc(92,182,11,'#e8505b',3)+Pa('M96 232l6 12 13 2-10 9 3 13-12-7-12 7 3-13-10-9 13-2z','#ffc93c',3)
+      +`<g transform="rotate(-5 128 336)">${R(98,308,62,50,'#fff',3)}${Cc(118,326,8,'#ffc93c',2)}${Stroke('M104 346l14-6 12 5 14-8','#4fc3a1',3)}</g>`;
+    const fOn=fr+R(50,130,190,392,'#eaf4ff',18)+R(62,144,166,364,'#cfeaf8',10)
+      +Ln(62,236,228,236,'#7fb8d6',8)+Ln(62,330,228,330,'#7fb8d6',8)+Ln(62,422,228,422,'#7fb8d6',8)
+      +R(78,176,32,58,'#fff',3)+R(78,176,32,14,'#4f8fe8',3)+Cc(136,218,16,'#e8505b',3)+Pa('M160 232l24-30 20 30z','#ffd43b',3)
+      +R(80,262,48,66,'#a5e0c6',6)+R(140,290,60,38,'#ffb3b3',6)+Cc(112,386,17,'#ff9f1c',3)+Cc(150,392,14,'#9be07a',3)+R(176,360,40,62,'#fff',4)
+      +Pa('M228 130L322 160V494L228 522Z','#f5faff',3.5)+R(238,200,70,24,'#bfe3f5',6,2.5)+R(238,300,70,24,'#bfe3f5',6,2.5)+R(238,390,70,24,'#bfe3f5',6,2.5)+Cc(310,320,5,'#9fb4cc',2.5)
+      +`<ellipse class="rise" cx="170" cy="500" rx="60" ry="24" fill="url(#gCold)"/><ellipse class="rise d1" cx="250" cy="506" rx="56" ry="22" fill="url(#gCold)"/><ellipse class="rise d2" cx="120" cy="508" rx="50" ry="20" fill="url(#gCold)"/>`
+      +Pa('M300 120l5 10 10 5-10 5-5 10-5-10-10-5 10-5z','#dff4ff',2.5,'class="tw"')+Pa('M338 210l4 8 8 4-8 4-4 8-4-8-8-4 8-4z','#dff4ff',2.5,'class="tw" style="animation-delay:-.8s"');
+    s+=obj('fridge',this.items.fridge.lab,[36,120,300,412],fOn,fOff);
+    // столешница
+    s+=R(330,402,470,118,'#c98a4b',6)+R(342,416,210,92,'#dba062',8,2.5)+R(566,416,222,92,'#dba062',8,2.5)+Cc(536,460,5,'#6d4a2a',2)+Cc(582,460,5,'#6d4a2a',2)
+      +R(318,380,494,26,'#f3e3c5',6)+El(470,381,82,9,'#8fa6bf',3);
+    // кран
+    const faucet=Tube('M436 380V316Q436 292 460 292H476Q494 292 494 312V318','#c9d3df',12)+R(420,376,32,8,'#c9d3df',3)+Cc(436,306,0,'none',0);
+    const tapOn=faucet+Ln(494,322,494,376,'#58b7ee',12,'class="flow"')+Ln(494,322,494,376,'#d8f3ff',4,'class="flow"')
+      +El(494,379,26,7,'#8fdcff',2.5)+Cc(470,370,5,'#8fdcff',0)+Cc(514,368,4,'#8fdcff',0)+Cc(480,360,3,'#8fdcff',0,'class="drip"');
+    s+=obj('tap',this.items.tap.lab,[410,280,110,112],tapOn,faucet);
+    // чайник
+    const kBase=R(558,372,76,10,'#4a4458',4)+Tube('M626 336Q652 338 646 358Q642 370 626 368','#eef0f5',6)
+      +Pa('M566 372L574 322Q596 306 620 322L628 372Z','#f4f6fb',3.5)+Pa('M572 336L548 322L552 346Z','#f4f6fb',3)+Cc(597,313,6,'#e8505b',3);
+    const kOn=kBase+Cc(597,352,5.5,'#ff8a1f',2.5)+`<g class="rise"><ellipse cx="545" cy="304" rx="14" ry="9" fill="#fff" opacity=".85"/></g><g class="rise d1"><ellipse cx="538" cy="296" rx="18" ry="10" fill="#fff" opacity=".85"/></g><g class="rise d2"><ellipse cx="552" cy="292" rx="12" ry="8" fill="#fff" opacity=".85"/></g>`;
+    s+=obj('kettle',this.items.kettle.lab,[534,272,118,114],kOn,kBase+Cc(597,352,5.5,'#b9b3c9',2.5));
+    // розетка
+    const sock=R(702,318,40,40,'#fff',9)+Cc(714,338,3,OL,0)+Cc(730,338,3,OL,0);
+    const plOn=sock+R(706,322,32,32,'#f4f6fb',7)+Cc(722,338,5,'#4cd96a',2,'class="blink"')+Tube('M722 354Q726 382 690 378Q668 374 678 386','#fff',3)+R(656,376,32,12,'#f4f6fb',4)
+      +`<path class="tw" d="M748 322l6 10-4 2 8 12" fill="none" stroke="#ffc93c" stroke-width="3.5" stroke-linecap="round"/>`;
+    const plOff=sock+R(664,372,36,14,'#f4f6fb',4)+Tube('M700 380Q716 392 736 380','#fff',3);
+    s+=obj('plug',this.items.plug.lab,[646,302,122,94],plOn,plOff);
+    // плита
+    s+=R(802,400,170,122,'#f4f4f8',8)+R(796,384,182,20,'#2f2b3a',6);
+    s+=R(814,350,68,36,'#9aa7c0',6)+R(808,344,80,10,'#7f8ca8',5)+Cc(848,338,6,'#7f8ca8',3)
+      +`<ellipse class="rise" cx="848" cy="326" rx="12" ry="8" fill="#fff" opacity=".7"/><ellipse class="rise d1" cx="840" cy="320" rx="14" ry="8" fill="#fff" opacity=".7"/>`;
+    const brOn=El(928,388,36,8,'#ff5a36',3)+El(928,386,26,5,'#ffd27a',0)+`<ellipse class="glow" cx="928" cy="372" rx="52" ry="26" fill="url(#gRed)"/><path class="rise" d="M912 372q6-8 0-16M930 372q6-8 0-16M948 372q6-8 0-16" fill="none" stroke="#ff8a5e" stroke-width="4" stroke-linecap="round"/>`;
+    s+=obj('burner',this.items.burner.lab,[884,336,96,60],brOn,El(928,388,36,8,'#4a4458',3));
+    const oven=R(814,424,146,84,'#dcdfea',8)+Ln(826,432,948,432,'#8c8fa6',6)+R(828,442,118,54,'#4a3a52',8)+R(832,446,110,46,'#ffb347',6)
+      +El(887,474,40,11,'#e8a15a',3)+Stroke('M856 472l14 4M872 466l14 8M888 464l14 10M904 464l14 8','#b86f2b',2.5)+Cc(861,452,0,'none',0)+`<rect class="flick" x="832" y="446" width="110" height="46" rx="6" fill="#fff3a0" opacity=".25"/>`
+      +Cc(836,413,5,'#8c8fa6',2.5)+Cc(858,413,5,'#8c8fa6',2.5);
+    s+=obj('oven','Духовка с пирогом',[806,404,164,110],oven,'','decoy');
+    // потолочная лампа
+    const lStat=Ln(560,0,560,92,OL,4)+Pa('M498 154Q560 60 622 154Z','#e8505b')+R(492,150,136,13,'#c93a45',6);
+    const lOn=`<circle class="glow" cx="560" cy="172" r="150" fill="url(#gGlow)"/>`+lStat+Cc(560,168,15,'#fffbc4',3)+Stroke('M530 190l-14 10M560 196v16M590 190l14 10','#ffd43b',4);
+    s+=obj('lamp',this.items.lamp.lab,[480,50,160,150],lOn,lStat+Cc(560,168,15,'#cfc8d8',3));
+    // кот и стол
+    s+=R(1006,424,176,16,'#b97a45',5)+R(1018,440,14,80,'#9b6334',4)+R(1156,440,14,80,'#9b6334',4)
+      +Pa('M1050 424Q1060 396 1094 396Q1128 396 1138 424Z','#fff3df',3.5)+Cc(1074,408,13,'#e8505b',3)+Cc(1100,404,13,'#9be07a',3)+Cc(1118,414,11,'#ffd43b',3);
+    s+=Pa('M1150 505Q1190 500 1180 466','none',9,'stroke="#3a2d4d"')+Pa('M1150 505Q1190 500 1180 466','none',0,'stroke="#ff9d4d" stroke-width="5" fill="none" stroke-linecap="round"')
+      +El(1112,494,32,26,'#ff9d4d',3.5)+Cc(1090,458,19,'#ff9d4d',3.5)+Pa('M1074 448l-2-18 14 8zM1106 444l6-16 8 14z','#ff9d4d',3.5)
+      +Cc(1083,456,2.8,OL,0)+Cc(1098,456,2.8,OL,0)+Pa('M1087 465q4 4 8 0','none',2.5)+Stroke('M1096 474v-6','#ff9d4d',0)+Stroke('M1100 482q8 4 16 2M1110 474q8 0 14 4','#e07a25',3.5);
+    return s;
+  }
+});
+
+/* ===================== 2. ГОСТИНАЯ ===================== */
+LEVELS.push({
+  id:'living', name:'Гостиная', sub:'Комната 2 из 4',
+  intro:'Гостиная! За окном зима. Здесь пять Энергожоров. А вот торшер у читающего Миши не трогай: ему нужен свет!',
+  items:{
+    window:{lab:'Открытое окно',title:'Открытое окно и горячая батарея',fact:'Батарея греет, а окно открыто, и тепло уходит на улицу. Проветривай комнату коротко, пару минут, и закрывай окно.'},
+    tv:{lab:'Телевизор',title:'Телевизор для никого',fact:'Телевизор работает, а смотреть некому. Выключай его совсем, а не только пультом: в режиме ожидания он тоже тратит энергию.'},
+    laptop:{lab:'Ноутбук',title:'Ноутбук без хозяина',fact:'Ноутбук включён, а за ним никого нет. Отошёл надолго — выключи его или переведи в спящий режим.'},
+    pendant:{lab:'Люстра',title:'Лишняя лампа',fact:'Миша читает у торшера, и этого света ему хватает. Большую люстру лучше выключить, чтобы свет не горел зря.'},
+    tablet:{lab:'Планшет на зарядке',title:'Зарядка на 100%',fact:'Планшет заряжен полностью, а зарядка всё ещё в розетке. Когда заряд полный, вытащи вилку.'}
+  },
+  decoys:{floorlamp:'Миша читает книгу, и торшер ему нужен. Свет там, где он нужен, — это правильно!'},
+  draw(){
+    let s='';
+    s+=`<rect width="1200" height="520" fill="#cdeaec"/>`;
+    for(let x=0;x<1200;x+=100) s+=`<rect x="${x}" y="0" width="50" height="520" fill="#bfe0e3" opacity=".6"/>`;
+    s+=floorBase(520,'#cf9a68','#fff3df','#b9814f');
+    s+=El(600,630,330,44,'#8f7ad8',3)+El(600,630,262,28,'#a794ea',0)+Stroke('M360 630H840','#fff3df',4,'stroke-dasharray="2 16"');
+    // картины
+    s+=R(560,80,120,86,'#fff',6)+R(570,90,100,66,'#9be07a',3)+Pa('M570 156l30-34 22 22 18-18 30 30z','#4fc3a1',2.5)+Cc(640,112,10,'#ffd43b',2.5);
+    s+=R(1050,100,90,110,'#fff',6)+R(1060,110,70,90,'#ffb3b3',3)+Cc(1095,152,22,'#fff',2.5)+Cc(1088,148,3,OL,0)+Cc(1102,148,3,OL,0);
+    s+=Pa('M1075 100l20-30 20 30z','#e8505b',3);
+    // окно + батарея
+    const base=win(70,90,250,220,{winter:true});
+    const curtOff=curtains(70,90,250,220,'#ffb3c1','#e8505b');
+    const rad=(c,g)=>R(100,362,192,92,c,10)+[0,1,2,3,4,5,6,7].map(i=>Ln(116+i*22,372,116+i*22,444,g,4)).join('')+Ln(100,470,100,520,OL,5)+Ln(292,470,292,520,OL,5)+R(92,452,208,14,g,5);
+    const wOff=base+curtOff+rad('#f4f6fb','#c3cde0');
+    const wOn=base
+      +Pa('M70 84L22 114V292L70 322Z','#cfeefc',3.5)+Ln(46,100,46,305,'#fff',4)+Pa('M70 84L22 114V292L70 322Z','none',3.5)
+      +`<g class="sway">${curtains(70,90,250,220,'#ffb3c1','#e8505b')}</g>`
+      +rad('#ff7a5a','#d4442a')+`<ellipse class="glow" cx="196" cy="410" rx="120" ry="60" fill="url(#gRed)"/>`
+      +`<path class="rise" d="M120 340q10-14 0-28M170 340q10-14 0-28M220 340q10-14 0-28M270 340q10-14 0-28" fill="none" stroke="#ff8a5e" stroke-width="5" stroke-linecap="round"/>`
+      +Stroke('M60 160Q150 140 250 160T380 150','#e6f6ff',5,'class="wind"')+Stroke('M70 230Q160 214 260 232T390 224','#e6f6ff',5,'class="wind" style="animation-delay:-.3s"')
+      +Cc(330,170,4,'#fff',2,'class="tw"')+Cc(370,230,3.5,'#fff',2,'class="tw" style="animation-delay:-.6s"')+Cc(340,290,4,'#fff',2,'class="tw" style="animation-delay:-1.2s"');
+    s+=obj('window',this.items.window.lab,[10,60,350,420],wOn,wOff);
+    // диван и мальчик
+    s+=R(406,350,240,86,'#4fc3a1',24)+R(396,408,262,84,'#5fd2b0',20)+R(386,382,42,112,'#3fae8d',18)+R(636,382,42,112,'#3fae8d',18)
+      +R(412,490,12,30,'#7a4f2a',3)+R(640,490,12,30,'#7a4f2a',3)+R(432,394,70,52,'#ffd43b',14)+R(586,398,50,50,'#e8505b',14);
+    s+=Pa('M512 396Q508 440 516 450H560Q564 440 560 396Z','#e8505b')+Pa('M520 392l-6-10 20-2 20 2-6 10z','#e8505b',3)
+      +Cc(537,360,27,'#ffd3b0')+Pa('M510 354Q512 326 540 328Q566 330 564 356Q552 340 538 342Q524 344 510 354Z','#6b4423')
+      +Cc(529,364,2.8,OL,0)+Cc(546,364,2.8,OL,0)+Stroke('M530 375q7 5 14 0',OL,2.5)
+      +R(508,420,60,42,'#fff',4)+Ln(538,420,538,462,OL,2.5)+R(512,424,22,34,'#8fb7ff',2,2)+Pa('M548 428l14 2M548 436l14 2M548 444l14 2','none',0,'stroke="#b9a8d8" stroke-width="2.5"')
+      +Tube('M516 410Q504 432 518 446','#e8505b',12)+Tube('M560 410Q574 432 558 446','#e8505b',12);
+    // торшер (обманка)
+    const fl=`<circle class="glow" cx="708" cy="250" r="120" fill="url(#gGlow)"/>`+Ln(708,262,708,500,OL,6)+El(708,508,28,9,'#6d4a2a',3)+Pa('M676 262L740 262L726 206L690 206Z','#ffd27a')+Cc(708,262,0,'none',0);
+    s+=obj('floorlamp','Торшер',[670,190,76,330],fl,'','decoy');
+    // телевизор
+    const stand=R(750,432,250,88,'#9b6334',8)+R(762,446,108,62,'#b97a45',6,2.5)+R(880,446,108,62,'#b97a45',6,2.5)+Cc(866,478,4,OL,0)+Cc(884,478,4,OL,0)+R(840,384,70,50,'#2b2b3a',4)+R(830,426,90,10,'#2b2b3a',4);
+    const frame=R(756,228,238,160,'#2b2b3a',12);
+    const tOn=stand+frame+R(766,238,218,140,'#7fd0ff',6)+Cc(930,276,20,'#ffe14d',2.5)+Pa('M766 378V330Q820 290 876 330T984 320V378Z','#7fd17a',2.5)+Pa('M800 360q8-28 24 0z','#4fc3a1',2)
+      +`<rect class="flick" x="766" y="238" width="218" height="140" rx="6" fill="#fff" opacity=".18"/>`+Cc(982,372,3.4,'#ff3b3b',0,'class="blink"');
+    const tOff=stand+frame+R(766,238,218,140,'#1d1b26',6)+Pa('M766 300L830 238H880L766 352Z','#fff',0,'opacity=".07"')+Cc(982,372,3.4,'#6b6580',0);
+    s+=obj('tv',this.items.tv.lab,[736,214,276,226],tOn,tOff);
+    // ноутбук
+    const desk=R(1026,436,164,14,'#b97a45',5)+R(1038,450,12,70,'#9b6334',3)+R(1166,450,12,70,'#9b6334',3)+R(992,408,14,84,'#e8505b',5)+R(992,478,66,14,'#e8505b',5)+Ln(1000,492,1000,520,OL,5)+Ln(1050,492,1050,520,OL,5);
+    const lap=R(1062,424,96,12,'#c3bfd3',4)+R(1070,336,82,90,'#2b2b3a',8);
+    const lOn=desk+`<circle class="glow" cx="1110" cy="380" r="100" fill="url(#gCold)" opacity=".7"/>`+lap+R(1076,342,70,76,'#5fb4ff',4)+R(1086,354,26,20,'#fff',3,2.5)+R(1118,380,20,24,'#ffd43b',3,2.5)+`<rect class="flick" x="1076" y="342" width="70" height="76" fill="#fff" opacity=".15"/>`;
+    s+=obj('laptop',this.items.laptop.lab,[1040,320,150,124],lOn,desk+lap+R(1076,342,70,76,'#1d1b26',4));
+    // люстра
+    const pStat=Ln(500,0,500,74,OL,4)+R(486,66,28,16,'#c93a45',5);
+    s+=obj('pendant',this.items.pendant.lab,[440,40,120,150],`<circle class="glow" cx="500" cy="130" r="160" fill="url(#gGlow)"/>`+pStat+Cc(500,128,40,'#fff7b0',3.5)+Pa('M478 112Q490 100 506 106','none',3,'stroke="#fff"'),pStat+Cc(500,128,40,'#e9e5f2',3.5)+Pa('M478 112Q490 100 506 106','none',3,'stroke="#fff"'));
+    // планшет
+    const tbl=R(308,462,76,10,'#b97a45',4)+R(318,472,10,48,'#9b6334',3)+R(364,472,10,48,'#9b6334',3);
+    const tab=R(324,418,52,44,'#2b2b3a',7);
+    const socket=R(290,394,32,32,'#fff',8)+Cc(299,410,2.6,OL,0)+Cc(312,410,2.6,OL,0);
+    const tbOn=tbl+socket+R(293,397,26,26,'#f4f6fb',6)+Cc(306,410,4,'#4cd96a',2,'class="blink"')+Tube('M306 424Q308 462 330 460','#fff',3)+tab+R(329,423,42,34,'#12b886',4)+Tx(350,446,'100%',15,'#fff')+Pa('M386 410l5 9-3 2 7 11','none',3,'class="tw" stroke="#ffc93c"');
+    const tbOff=tbl+socket+tab+R(329,423,42,34,'#1d1b26',4)+Tube('M334 466Q352 474 368 466','#fff',3);
+    s+=obj('tablet',this.items.tablet.lab,[280,382,118,98],tbOn,tbOff);
+    return s;
+  }
+});
+
+/* ===================== 3. ВАННАЯ ===================== */
+LEVELS.push({
+  id:'bath', name:'Ванная', sub:'Комната 3 из 4',
+  intro:'Ванная комната! Тут вода, свет и техника. Пять Энергожоров затаились. Лампа у зеркала нужна: Миша чистит зубы.',
+  items:{
+    tap:{lab:'Кран у раковины',title:'Вода, пока чистишь зубы',fact:'Миша чистит зубы, а вода течёт. Пока щётка работает, кран можно закрыть. За день так сэкономятся вёдра воды и энергии на её нагрев.'},
+    bath:{lab:'Ванна',title:'Ванна переливается',fact:'Ванна уже полная, а кран открыт. Горячая вода — это ещё и энергия на нагрев. Не отходи от открытого крана!'},
+    washer:{lab:'Стиральная машина',title:'Полупустая стирка',fact:'Машина стирает всего пару носков. Загружай барабан полностью: так экономишь воду и электричество.'},
+    dryer:{lab:'Фен',title:'Фен без хозяина',fact:'Фен дует в пустоту. Электроприборы, которыми никто не пользуется, нужно выключать.'},
+    wc:{lab:'Свет в туалете',title:'Свет в пустой комнате',fact:'В туалете никого нет, а лампочка светит. Выходишь из комнаты — выключай свет.'}
+  },
+  decoys:{mirror:'Миша чистит зубы, и свет у зеркала ему нужен. Всё правильно!'},
+  draw(){
+    let s='';
+    s+=`<rect width="1200" height="520" fill="#d9ecff"/>`;
+    for(let x=0;x<1200;x+=60) s+=Ln(x,0,x,520,'#b6d6f2',2);
+    for(let y=0;y<520;y+=60) s+=Ln(0,y,1200,y,'#b6d6f2',2);
+    s+=`<rect x="0" y="400" width="1200" height="120" fill="#c3dcf5" opacity=".0"/>`;
+    // пол-шахматка
+    s+=`<rect x="0" y="520" width="1200" height="180" fill="#f4f6fb"/>`;
+    for(let r=0;r<3;r++)for(let c=0;c<22;c++) if((r+c)%2===0) s+=`<rect x="${c*60}" y="${520+r*60}" width="60" height="60" fill="#bcd3ee"/>`;
+    s+=`<rect x="0" y="500" width="1200" height="24" fill="#fff" ${st(3)}/><rect x="0" y="524" width="1200" height="30" fill="url(#gShade)" opacity=".7"/>`;
+    s+=El(400,640,150,22,'#ffb3c1',3);
+    // ванна
+    const faucetB=Tube('M252 396V330Q252 312 232 312H206','#c9d3df',12);
+    const tub=`<rect x="56" y="494" width="22" height="16" rx="4" fill="#c9d3df" ${st(3)}/><rect x="226" y="494" width="22" height="16" rx="4" fill="#c9d3df" ${st(3)}/>`
+      +Pa('M24 410H292V458Q292 498 250 498H66Q24 498 24 458Z','#fff')+R(14,396,288,18,'#f4f6fb',8)+Pa('M24 440H292','none',3,'stroke="#dfe6f3"');
+    const duck=Pa('M120 400Q112 380 130 376Q134 366 144 372Q152 376 148 388Q168 392 160 404Z','#ffd43b',3)+Pa('M144 376l12 2-10 6z','#ff9f1c',2.5)+Cc(138,378,2,OL,0);
+    const bOff=tub+faucetB+duck.replace(/translate/,'');
+    const bOn=tub+`<path d="M30 418Q60 406 90 418T150 418T210 418T286 416V452Q286 490 250 490H66Q30 490 30 452Z" fill="#7ecff7" ${st(3)}/>`
+      +`<g class="sway">${duck}</g>`
+      +Ln(298,414,298,490,'#7ecff7',8,'class="flow"')+El(296,520,40,10,'#7ecff7',3)+Cc(286,500,5,'#7ecff7',0,'class="drip"')
+      +faucetB+Ln(206,320,206,402,'#58b7ee',12,'class="flow"')+Ln(206,320,206,402,'#d8f3ff',4,'class="flow"')
+      +`<ellipse class="rise" cx="120" cy="380" rx="22" ry="12" fill="#fff" opacity=".8"/><ellipse class="rise d1" cx="170" cy="376" rx="18" ry="10" fill="#fff" opacity=".8"/>`;
+    s+=obj('bath',this.items.bath.lab,[10,290,320,260],bOn,bOff);
+    // зеркало и лампа (обманка)
+    s+=El(490,214,82,100,'#ffc93c',4)+El(490,214,70,88,'#eaf8ff',3)+Stroke('M446 170l32-28M440 214l60-52M456 280l56-76','#fff',6,'opacity=".8"');
+    const mir=`<circle class="glow" cx="490" cy="84" r="120" fill="url(#gGlow)"/>`+Ln(490,60,490,84,OL,5)+R(420,76,140,24,'#fff',10)+Cc(448,100,10,'#fffbc4',3)+Cc(490,102,10,'#fffbc4',3)+Cc(532,100,10,'#fffbc4',3);
+    s+=obj('mirror','Лампа у зеркала',[410,40,160,76],mir,'','decoy');
+    // раковина
+    s+=Pa('M404 388H588Q588 426 548 434H444Q404 426 404 388Z','#fff')+R(470,432,46,88,'#f4f6fb',6)+R(458,514,70,10,'#dfe6f3',4)+El(496,388,92,10,'#dfe6f3',3);
+    const fct=R(486,344,16,46,'#c9d3df',4)+Tube('M494 352H534V372','#c9d3df',12);
+    s+=obj('tap',this.items.tap.lab,[460,320,116,96],fct+Ln(534,376,534,392,'#58b7ee',12,'class="flow"')+Ln(534,376,534,392,'#d8f3ff',4,'class="flow"')+Cc(522,398,4,'#8fdcff',0)+Cc(548,400,4,'#8fdcff',0,'class="drip"')+El(534,396,26,6,'#8fdcff',0),fct);
+    // Миша
+    s+=R(326,470,22,50,'#4f8fe8',8)+R(358,470,22,50,'#4f8fe8',8)+El(334,522,18,7,'#e8505b',3)+El(368,522,18,7,'#e8505b',3)
+      +Pa('M318 408Q318 390 340 390H372Q394 390 394 408V478H318Z','#ffb347')
+      +Cc(356,354,32,'#ffd3b0')+Pa('M324 348Q326 316 358 318Q386 320 388 348Q374 332 354 334Q336 336 324 348Z','#6b4423')
+      +Cc(368,356,3,OL,0)+Cc(380,354,3,OL,0)+Cc(334,364,5.5,'#ff8f9d',0)+Pa('M372 368q6 4 12-1','none',2.5)
+      +Tube('M390 416Q412 400 400 372','#ffb347',13)+Cc(400,368,8,'#ffd3b0',3)
+      +Ln(392,368,426,356,'#4fc3a1',7)+Ln(392,368,426,356,OL,2,'opacity=".0"')+Cc(406,364,7,'#fff',0)+Cc(414,361,5,'#fff',0)+Cc(424,358,4,'#fff',0);
+    // стиральная машина
+    const wm=R(742,372,150,148,'#f4f6fb',12)+R(742,372,150,34,'#dfe6f3',10)+Cc(768,390,8,'#e8505b',3)+Cc(792,390,8,'#ffc93c',3)+R(836,382,40,16,'#2b2b3a',4)+Cc(817,464,52,'#c3cde0',3.5);
+    const sock=(c,t)=>`<path d="M-8 -22h14v22q14 4 12 18-2 8-14 8-14 0-12-14z" fill="${c}" ${st(2.5)} transform="${t}"/>`;
+    const wOn=wm+Cc(817,464,40,'#8fd0f2',3)+`<g class="spin"><g transform="translate(817 464)">${sock('#ff6b81','translate(-6 -2) rotate(30) scale(.9)')}${sock('#ffd43b','translate(10 6) rotate(-100) scale(.8)')}</g></g>`+Cc(860,390,0,'none',0)+Cc(866,390,4,'#4cd96a',0,'class="blink"')
+      +Pa('M790 432q10-8 22-2','none',3,'stroke="#fff" opacity=".7"');
+    const wOff=wm+Cc(817,464,40,'#b8e4f7',3)+`<g transform="translate(817 478)">${sock('#ff6b81','translate(-14 6) rotate(75) scale(.7)')}${sock('#ffd43b','translate(10 6) rotate(-80) scale(.65)')}</g>`+Cc(866,390,4,'#b9b3c9',0);
+    s+=obj('washer',this.items.washer.lab,[730,360,174,170],wOn,wOff);
+    // фен на полке
+    s+=R(738,320,160,12,'#b97a45',4)+Ln(756,332,756,350,OL,5)+Ln(880,332,880,350,OL,5);
+    const hd=Pa('M770 270H836Q850 270 850 284V298Q850 312 836 312H770Z','#ff6b81')+R(748,276,28,30,'#c93a45',5)+Pa('M812 312L826 312L822 322L808 322Z','#c93a45',3)+Stroke('M822 322Q840 340 876 322','#3a2d4d',3);
+    const hOn=`<g class="nopt">`+Stroke('M742 284Q710 280 680 286','#e6f6ff',6,'class="wind"')+Stroke('M742 296Q706 296 676 304','#e6f6ff',6,'class="wind" style="animation-delay:-.3s"')+Stroke('M744 306Q712 314 690 326','#e6f6ff',6,'class="wind" style="animation-delay:-.5s"')+`</g>`+hd+Cc(842,281,4,'#ffd43b',2,'class="blink"');
+    s+=obj('dryer',this.items.dryer.lab,[666,246,196,82],hOn,hd+Cc(842,281,4,'#b9b3c9',2));
+    // дверь в туалет
+    s+=R(940,56,236,466,'#fffaf0',6,4);
+    const roomOn=R(954,70,208,450,'#fff2b6',2,3)+`<circle class="glow" cx="1058" cy="170" r="140" fill="url(#gGlow)"/>`;
+    const roomOff=R(954,70,208,450,'#8f9bc4',2,3);
+    const wcFurn=R(1030,330,86,70,'#fff',8)+Pa('M1020 400H1130Q1136 440 1100 458H1052Q1014 440 1020 400Z','#fff')+R(1058,456,34,50,'#f4f6fb',6)+R(1130,300,22,36,'#ffd43b',4,2.5)+Cc(1141,318,5,'#fff',0);
+    const bulbS=Ln(1058,70,1058,126,OL,4)+R(1046,120,24,14,'#c93a45',4);
+    s+=obj('wc',this.items.wc.lab,[944,50,232,476],roomOn+wcFurn+bulbS+Cc(1058,148,16,'#fffbc4',3),roomOff+wcFurn+bulbS+Cc(1058,148,16,'#b9b3c9',3));
+    s+=Pa('M940 56L896 82V500L940 522Z','#e8f1ff',4)+Cc(912,300,5,'#9fb4cc',2.5);
+    return s;
+  }
+});
+
+/* ===================== 4. КЛАСС ===================== */
+LEVELS.push({
+  id:'class', name:'Школьный класс', sub:'Комната 4 из 4',
+  intro:'Последняя комната: наш класс после уроков! Шесть Энергожоров ждут. Учитель проверяет тетради — ему свет нужен!',
+  items:{
+    light1:{lab:'Лампа у доски',title:'Лампы днём',fact:'Класс залит солнцем, а лампы горят. Днём в светлой комнате можно обойтись без электричества.'},
+    light2:{lab:'Лампа у окна',title:'Ещё одна лишняя лампа',fact:'Эта лампа тоже светит впустую. Уходишь из класса — выключи свет, пусть энергия пригодится.'},
+    pc:{lab:'Компьютер',title:'Компьютер без хозяина',fact:'Компьютер включён, а за ним никого нет. Уходишь надолго — выключай его.'},
+    window:{lab:'Открытое окно',title:'Окно и батарея',fact:'В классе никого нет, а окно распахнуто, и батарея греет улицу. Проветривай коротко и закрывай окно.'},
+    projector:{lab:'Проектор',title:'Проектор для пустого класса',fact:'Урока нет, а проектор светит на пустой экран. Закончился урок — выключи его.'},
+    tap:{lab:'Капающий кран',title:'Капающий кран',fact:'Капля за каплей набегают вёдра воды, а для тёплой воды ещё и энергия на нагрев. Плотно закручивай кран.'}
+  },
+  decoys:{teacher:'Учитель проверяет тетради, и лампа на столе нужна. Не выключай!'},
+  draw(){
+    let s='';
+    s+=`<rect width="1200" height="520" fill="#e8f3c8"/>`;
+    s+=`<rect x="0" y="360" width="1200" height="144" fill="#a9d68f"/>`+Ln(0,360,1200,360,OL,3)+`<rect x="0" y="360" width="1200" height="144" fill="url(#gShade)" opacity=".6"/>`;
+    s+=floorBase(520,'#d9b27a','#fff3df','#c29a62');
+    // доска
+    s+=R(34,84,262,182,'#b97a45',8,4)+R(46,96,238,158,'#2f5d50',4,3)+Tx(165,150,'Береги',32,'#fff')+Tx(165,192,'энергию!',32,'#ffe14d')
+      +Pa('M214 214l-8 22h10l-6 18 20-26h-11l7-14z','#ffe14d',2.5)+R(60,262,230,10,'#9b6334',3)+R(80,252,26,10,'#fff',3,2)+R(114,254,18,8,'#ffb3c1',3,2);
+    // постеры и часы
+    s+=R(700,92,140,140,'#fffdf4',6)+R(712,104,116,90,'#bfe6ef',3)+Cc(770,138,18,'#ffd43b',2.5)+Pa('M712 194V170Q740 150 770 172T828 164V194Z','#7fd17a',2.5)+Tx(770,218,'Свет — это энергия',13,OL);
+    s+=Cc(660,330,0,'none',0);
+    // столы учеников
+    for(const x of [330,470,610]){
+      s+=R(x+8,486,28,34,'#e8505b',5)+R(x,468,112,12,'#f0c98d',4)+Ln(x+14,480,x+14,520,OL,5)+Ln(x+98,480,x+98,520,OL,5)+R(x+22,452,38,16,'#8fb7ff',3,2.5)+R(x+64,456,24,12,'#ffd43b',3,2.5);
+    }
+    // парты первого плана
+    for(const x of [250,520,790]){
+      s+=R(x+20,624,56,66,'#e8505b',8)+R(x,590,160,16,'#f0c98d',5)+Ln(x+16,606,x+16,690,OL,6)+Ln(x+144,606,x+144,690,OL,6)+R(x+28,572,56,18,'#8fb7ff',4,2.5)+R(x+96,574,34,16,'#4fc3a1',4,2.5);
+    }
+    s+=R(1060,604,64,76,'#ff9f1c',14)+R(1072,622,40,22,'#ffd27a',6,2.5)+Tube('M1070 606Q1092 580 1114 606','#c9701a',5);
+    // окно и батарея
+    const base=win(340,100,290,190,{});
+    const rad=(c,g)=>R(360,350,252,88,c,10)+Array.from({length:11},(_,i)=>Ln(378+i*21,360,378+i*21,428,g,4)).join('')+R(352,436,268,12,g,5);
+    const cur=curtains(340,100,290,190,'#ffd27a','#e29a1a');
+    const wOff=base+cur+rad('#f4f6fb','#c3cde0')+Cc(404,76,0,'none',0);
+    const wOn=base+Pa('M340 94L292 122V280L340 306Z','#cfeefc',3.5)+Ln(316,108,316,292,'#fff',4)
+      +`<g class="sway">${cur}</g>`+rad('#ff7a5a','#d4442a')+`<ellipse class="glow" cx="486" cy="395" rx="150" ry="56" fill="url(#gRed)"/>`
+      +`<path class="rise" d="M400 330q10-14 0-28M470 330q10-14 0-28M540 330q10-14 0-28" fill="none" stroke="#ff8a5e" stroke-width="5" stroke-linecap="round"/>`
+      +Stroke('M330 170Q440 150 560 172T700 160','#fff',5,'class="wind"')+Stroke('M330 240Q440 224 560 242T700 234','#fff',5,'class="wind" style="animation-delay:-.4s"');
+    s+=obj('window',this.items.window.lab,[290,50,360,410],wOn,wOff);
+    // цветок
+    s+=R(420,276,34,16,'#e8505b',4)+Stroke('M437 276Q432 250 420 240M437 276Q440 246 454 236','#4fc3a1',5)+Pa('M420 240q-18-4-18-18 14 0 18 18z','#7fd17a',2.5)+Pa('M454 236q18-4 18-18-14 0-18 18z','#7fd17a',2.5);
+    // потолочные лампы
+    const lamp=(id,cx)=>{
+      const stat=Ln(cx-70,0,cx-70,20,OL,4)+Ln(cx+70,0,cx+70,20,OL,4)+R(cx-96,18,192,22,'#f4f6fb',8);
+      const on=`<path class="glow" d="M${cx-96} 40L${cx-190} 200H${cx+190}L${cx+96} 40Z" fill="url(#gGlow)" opacity=".8"/>`+stat+R(cx-84,24,168,10,'#fffbc4',5,2.5);
+      return obj(id,this.items[id].lab,[cx-110,0,220,120],on,stat+R(cx-84,24,168,10,'#cfc8d8',5,2.5));
+    };
+    s+=lamp('light1',200)+lamp('light2',700);
+    // компьютер
+    const desk=R(30,408,236,14,'#b97a45',5)+R(42,422,12,98,'#9b6334',3)+R(244,422,12,98,'#9b6334',3)+R(70,436,86,60,'#c3bfd3',5)+Cc(112,466,10,'#9aa7c0',2.5)+R(180,432,70,70,'#9b6334',4,2.5)+R(186,438,58,26,'#b97a45',3,2)+R(186,470,58,26,'#b97a45',3,2);
+    const mon=R(88,326,128,80,'#2b2b3a',8)+R(142,404,20,10,'#6d7a90',2)+R(124,412,56,8,'#6d7a90',4);
+    const kb=R(96,396,0,0,'none',0);
+    const pcOn=desk+`<circle class="glow" cx="152" cy="366" r="110" fill="url(#gCold)" opacity=".7"/>`+mon+R(96,334,112,64,'#4a9dff',4)+`<g class="spin" style="animation-duration:6s">${Cc(152,366,0,'none',0)}</g>`+Cc(130,356,9,'#ffd43b',2.5)+Cc(168,372,9,'#ff6b81',2.5)+Cc(182,350,6,'#fff',2)+`<rect class="flick" x="96" y="334" width="112" height="64" fill="#fff" opacity=".14"/>`;
+    s+=obj('pc',this.items.pc.lab,[26,300,246,124],pcOn,desk+mon+R(96,334,112,64,'#1d1b26',4));
+    // проектор и экран
+    s+=R(884,56,262,10,'#6d7a90',4)+R(892,66,246,170,'#fffdf4',4);
+    const projS=Ln(1016,0,1016,36,OL,5)+R(984,34,64,28,'#4a4458',8)+Cc(1016,64,9,'#9aa7c0',3);
+    const scrOn=`<path d="M1010 70L892 66V236L1138 236V66Z" fill="url(#gBeam)" class="nopt" opacity=".85"/>`+R(900,74,230,154,'#bfe6ef',3)+Pa('M934 210V164L1016 112L1098 164V210Z','#ffb347',3)+Pa('M924 168L1016 100L1108 168Z','#e8505b',3)+R(996,170,36,40,'#8b5a2b',3)+Cc(1090,106,16,'#ffd43b',2.5)+Tx(1016,226,'Энергия',16,OL)+projS+Cc(1016,64,6,'#fff7b0',0,'class="blink"');
+    s+=obj('projector',this.items.projector.lab,[876,0,282,250],scrOn,projS+Cc(1016,64,5,'#6d7a90',0));
+    // учитель (обманка)
+    s+=R(706,470,180,50,'#b97a45',4);
+    const teach=`<circle class="glow" cx="760" cy="360" r="130" fill="url(#gGlow)"/>`
+      +R(800,478,60,42,'#8fb7ff',5)+Pa('M796 440Q796 396 836 396Q876 396 876 440V470H796Z','#4f8fe8')+Cc(836,360,30,'#ffd3b0')+Pa('M805 356Q805 322 836 322Q868 322 868 356Q856 340 836 342Q816 340 805 356Z','#8a4b2a')+Cc(836,318,12,'#8a4b2a',3)
+      +Cc(826,362,2.8,OL,0)+Cc(846,362,2.8,OL,0)+`<circle cx="826" cy="362" r="8" fill="none" ${st(2.5)}/><circle cx="846" cy="362" r="8" fill="none" ${st(2.5)}/>`+Stroke('M828 376q8 6 16 0',OL,2.5)
+      +R(700,430,196,14,'#c98a4b',4)+R(712,444,172,76,'#dba062',6,3)+R(724,458,70,50,'#c98a4b',4,2.5)
+      +R(790,412,60,20,'#e8505b',3,2.5)+R(796,406,60,14,'#4fc3a1',3,2.5)+R(808,428,52,4,'#fff',2,2)
+      +Ln(722,430,742,380,OL,5)+Ln(742,380,770,366,OL,5)+Pa('M754 372L792 360L798 378L760 392Z','#ffd27a')+Cc(724,430,6,'#6d4a2a',2.5);
+    s+=obj('teacher','Лампа на столе учителя',[696,310,206,220],teach,'','decoy');
+    // раковина
+    s+=R(1030,404,156,116,'#dba062',8)+R(1020,390,176,20,'#f4f6fb',6)+El(1106,392,60,9,'#8fa6bf',3);
+    const fct=R(1098,334,16,56,'#c9d3df',4)+Tube('M1106 344H1070V366','#c9d3df',12);
+    s+=obj('tap',this.items.tap.lab,[1040,320,150,86],fct+Cc(1070,382,5,'#6ec6f5',2,'class="drip"')+Cc(1070,382,5,'#6ec6f5',2,'class="drip" style="animation-delay:-.5s"'),fct);
+    return s;
+  }
+});
+
+/* ===================== игра ===================== */
+const $=s=>document.querySelector(s);
+const stage=$('#stage'), modalEl=$('#modal');
+let sound=true, ac=null;
+function audio(){try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();if(ac.state==='suspended')ac.resume();}catch(e){}return ac}
+function tone(f,d=.12,type='sine',t0=0,vol=.14){
+  if(!sound)return;const a=audio();if(!a)return;
+  const o=a.createOscillator(),g=a.createGain();o.type=type;o.frequency.value=f;
+  const t=a.currentTime+t0;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+.012);g.gain.exponentialRampToValueAtTime(.0001,t+d);
+  o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+d+.03);
+}
+const sfx={
+  ok(){[523,659,784,1047].forEach((f,i)=>tone(f,.15,'triangle',i*.07))},
+  bad(){tone(190,.22,'sawtooth',0,.1);tone(140,.3,'sawtooth',.12,.1)},
+  win(){[523,659,784,659,784,1047,1319].forEach((f,i)=>tone(f,.2,'triangle',i*.1))},
+  lose(){[392,330,262,196].forEach((f,i)=>tone(f,.28,'sine',i*.16))},
+  click(){tone(700,.07,'square',0,.05)}
+};
+const RATE=0.36;               // сколько заряда в секунду съедает один Энергожор
+const G={lvl:0,found:new Set(),energy:100,mistakes:0,hints:3,paused:true,last:0,stars:[],name:'',raf:0,ring:null};
+
+function setBubble(txt,mood='happy'){ $('#bubMas').innerHTML=mascot(mood); $('#bubTxt').textContent=txt; }
+function modal(html,focusSel){
+  modalEl.innerHTML=`<div class="card" role="dialog" aria-modal="true">${html}</div>`;
+  modalEl.hidden=false;
+  const b=modalEl.querySelector(focusSel||'.btn'); if(b) setTimeout(()=>b.focus({preventScroll:true}),50);
+}
+function closeModal(){ modalEl.hidden=true; modalEl.innerHTML=''; try{speechSynthesis.cancel()}catch(e){} }
+const itemIds=L=>Object.keys(L.items);
+
+/* --- титул --- */
+$('#ttMascot').innerHTML=mascot('wow');
+$('#geL').innerHTML=gremlin(); $('#geR').innerHTML=gremlin();
+try{ $('#nameIn').value=localStorage.getItem('luchik-name')||''; }catch(e){}
+$('#startBtn').addEventListener('click',()=>{
+  G.name=$('#nameIn').value.trim().slice(0,28);
+  try{localStorage.setItem('luchik-name',G.name)}catch(e){}
+  audio(); sfx.click(); G.stars=[];
+  $('#title').hidden=true; $('#game').hidden=false;
+  loadLevel(0);
+});
+$('#nameIn').addEventListener('keydown',e=>{ if(e.key==='Enter') $('#startBtn').click(); });
+$('#sndBtn').addEventListener('click',()=>{ sound=!sound; $('#sndBtn').textContent='Звук: '+(sound?'вкл':'выкл'); if(sound) sfx.click(); });
+$('#hintBtn').addEventListener('click',useHint);
+
+/* --- уровень --- */
+function loadLevel(i){
+  G.lvl=i; const L=LEVELS[i];
+  G.found=new Set(); G.energy=100; G.mistakes=0; G.hints=3; G.paused=true; G.ring=null;
+  stage.innerHTML=DEFS+L.draw.call(L);
+  $('#lvlNo').textContent=L.sub; $('#lvlName').textContent=L.name;
+  $('#found').innerHTML=itemIds(L).map(()=>'<i></i>').join('');
+  $('#hintN').textContent=G.hints; $('#hintBtn').disabled=false;
+  updateBar();
+  setBubble('Нажимай на то, что тратит энергию зря. Следи за зарядом!');
+  window.scrollTo({top:0});
+  modal(`<div class="mas">${mascot('happy')}</div><span class="tag">${L.sub}</span><h2>${L.name}</h2><p>${L.intro}</p><button class="btn" id="goBtn">Поехали!</button>`,'#goBtn');
+  $('#goBtn').addEventListener('click',()=>{ sfx.click(); closeModal(); G.paused=false; G.last=performance.now(); loop(); });
+}
+function updateBar(){
+  const e=Math.max(0,G.energy);
+  $('#barFill').style.transform=`scaleX(${e/100})`;
+  const bar=$('#bar'); bar.classList.toggle('low',e<30); bar.setAttribute('aria-valuenow',Math.round(e));
+}
+function loop(){
+  cancelAnimationFrame(G.raf);
+  const tick=now=>{
+    const dt=Math.min(.1,(now-G.last)/1000); G.last=now;
+    if(!G.paused){
+      const L=LEVELS[G.lvl], active=itemIds(L).length-G.found.size;
+      G.energy-=active*RATE*dt; updateBar();
+      if(G.energy<=0){ G.energy=0; updateBar(); return lose(); }
+    }
+    G.raf=requestAnimationFrame(tick);
+  };
+  G.raf=requestAnimationFrame(tick);
+}
+
+/* --- нажатия --- */
+stage.addEventListener('click',e=>{ const g=e.target.closest('.obj'); if(g) hit(g); });
+stage.addEventListener('keydown',e=>{ if((e.key==='Enter'||e.key===' ')&&e.target.classList&&e.target.classList.contains('obj')){ e.preventDefault(); hit(e.target); } });
+function hit(g){
+  if(G.paused) return;
+  const L=LEVELS[G.lvl], id=g.dataset.id;
+  if(g.classList.contains('decoy')){
+    G.mistakes++; G.energy=Math.max(0,G.energy-10); updateBar();
+    g.classList.remove('shake'); void g.getBoundingClientRect(); g.classList.add('shake'); setTimeout(()=>g.classList.remove('shake'),450);
+    sfx.bad(); setBubble(L.decoys[id]||'Это нужно людям прямо сейчас!','oops');
+    if(G.energy<=0) lose();
+    return;
+  }
+  if(g.classList.contains('fixed')) return;
+  g.classList.add('fixed'); G.found.add(id); G.paused=true;
+  clearRing(); burst(g); sfx.ok();
+  [...$('#found').children].forEach((d,k)=>d.classList.toggle('ok',k<G.found.size));
+  const left=itemIds(L).length-G.found.size, it=L.items[id];
+  setTimeout(()=>{
+    const hint = left? `Осталось найти: ${left}` : 'Это был последний Энергожор!';
+    modal(`<div class="fact-ico">${gremlin()}</div><span class="tag">Энергожор пойман!</span><h2>${it.title}</h2><p>${it.fact}</p><p style="color:var(--muted);font-size:.95rem">${hint}</p><div class="row"><button class="chip" id="sayBtn" type="button">Прочитать вслух</button><button class="btn" id="nextBtn">${left?'Дальше':'Готово!'}</button></div>`,'#nextBtn');
+    $('#sayBtn').addEventListener('click',()=>say(`${it.title}. ${it.fact}`));
+    $('#nextBtn').addEventListener('click',()=>{
+      sfx.click(); closeModal();
+      if(!left) return done();
+      G.paused=false; G.last=performance.now();
+      setBubble(['Отлично!','Так держать!','Молодец, ты зоркий!','Ещё один готов!'][G.found.size%4]+` Осталось ещё ${left}.`);
+    });
+  },420);
+}
+function say(t){ try{ speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(t); u.lang='ru-RU'; u.rate=.95; speechSynthesis.speak(u);}catch(e){} }
+function burst(g){
+  const b=g.querySelector('.hit').getBBox(), cx=b.x+b.width/2, cy=b.y+b.height/2;
+  const w=document.createElementNS('http://www.w3.org/2000/svg','g'); w.setAttribute('transform',`translate(${cx} ${cy})`);
+  w.innerHTML=`<g class="pop"><circle r="46" fill="#ffe14d" opacity=".85"/><path d="M0-62l12 34 36-6-24 28 24 28-36-6-12 34-12-34-36 6 24-28-24-28 36 6z" fill="#fff6a8" stroke="${OL}" stroke-width="3" stroke-linejoin="round"/></g>`;
+  stage.appendChild(w); setTimeout(()=>w.remove(),800);
+}
+function clearRing(){ if(G.ring){G.ring.remove();G.ring=null;} }
+function useHint(){
+  if(G.paused||G.hints<=0) return;
+  const L=LEVELS[G.lvl];
+  const id=itemIds(L).find(k=>!G.found.has(k)); if(!id) return;
+  const g=stage.querySelector(`#o-${id}`), b=g.querySelector('.hit').getBBox();
+  clearRing();
+  const r=document.createElementNS('http://www.w3.org/2000/svg','rect');
+  r.setAttribute('class','ring'); r.setAttribute('x',b.x); r.setAttribute('y',b.y); r.setAttribute('width',b.width); r.setAttribute('height',b.height); r.setAttribute('rx',16);
+  stage.appendChild(r); G.ring=r; setTimeout(()=>{ if(G.ring===r) clearRing(); },6000);
+  G.hints--; $('#hintN').textContent=G.hints; $('#hintBtn').disabled=G.hints<=0;
+  sfx.click(); setBubble('Смотри внутрь мигающей рамки: там прячется Энергожор!');
+}
+
+/* --- итоги --- */
+function calcStars(){ let s=G.energy>=60?3:G.energy>=35?2:1; if(G.mistakes>=4&&s>1) s--; return s; }
+function lose(){
+  G.paused=true; cancelAnimationFrame(G.raf); sfx.lose();
+  modal(`<div class="mas">${mascot('oops')}</div><h2>Заряд закончился</h2><p>Энергожоры съели всю энергию, пока мы искали. Ничего страшного, попробуем ещё раз. Теперь ты знаешь, где они прячутся!</p><button class="btn" id="againBtn">Ещё раз</button>`,'#againBtn');
+  $('#againBtn').addEventListener('click',()=>{ sfx.click(); closeModal(); loadLevel(G.lvl); });
+}
+function done(){
+  G.paused=true; cancelAnimationFrame(G.raf);
+  const n=calcStars(); G.stars[G.lvl]=n; sfx.win();
+  const last=G.lvl===LEVELS.length-1;
+  const praise=n===3?'Идеально! Ни одного Энергожора не упустил(а).':n===2?'Очень хорошо! Заряд почти не потерян.':'Получилось! В следующий раз будет ещё лучше.';
+  modal(`<div class="mas">${mascot('wow')}</div><h2>${LEVELS[G.lvl].name}: чисто!</h2>
+    <div class="stars3">${[1,2,3].map(k=>`<span class="pop3" style="animation-delay:${k*.18}s;display:block">${star(k<=n)}</span>`).join('')}</div>
+    <p>${praise}</p><p style="color:var(--muted);font-size:.95rem">Заряд сохранён: ${Math.round(G.energy)}%${G.mistakes?` · Лишних нажатий: ${G.mistakes}`:''}</p>
+    <button class="btn" id="nxtBtn">${last?'Получить диплом':'В следующую комнату'}</button>`,'#nxtBtn');
+  $('#nxtBtn').addEventListener('click',()=>{ sfx.click(); closeModal(); last? final(): loadLevel(G.lvl+1); });
+}
+function final(){
+  const total=G.stars.reduce((a,b)=>a+b,0), max=LEVELS.length*3;
+  const who=G.name||'Юный энергоспасатель';
+  modal(`<div class="cert">
+      <div class="mas" style="margin:0 auto;width:84px">${mascot('wow')}</div>
+      <h2>Диплом энергоспасателя</h2>
+      <p>Награждается</p>
+      <div class="who">${who.replace(/[<>&]/g,'')}</div>
+      <p>за то, что нашёл(ла) Энергожоров на кухне, в гостиной, в ванной и в школьном классе</p>
+      <div class="rooms">${LEVELS.map((l,i)=>`<div><b>${l.name}</b><span>${[1,2,3].map(k=>star(k<=G.stars[i],24)).join('')}</span></div>`).join('')}</div>
+      <p style="font-size:.95rem;color:var(--muted)">Звёзд собрано: ${total} из ${max}</p>
+    </div>
+    <h3 style="font-size:1.35rem">5 правил Лучика</h3>
+    <ol class="rules">
+      <li>Выходишь из комнаты — выключи свет.</li>
+      <li>Не оставляй включёнными технику и зарядки.</li>
+      <li>Закрывай кран, когда вода не нужна.</li>
+      <li>Холодильник открывай ненадолго, окно — только на короткое проветривание.</li>
+      <li>Стирай с полным барабаном, а в чайник наливай столько воды, сколько нужно.</li>
+    </ol>
+    <p style="font-size:.9rem;color:var(--muted)">Чтобы сохранить диплом, сделай снимок экрана.</p>
+    <button class="btn" id="replayBtn">Играть сначала</button>`,'#replayBtn');
+  $('#replayBtn').addEventListener('click',()=>{ sfx.click(); closeModal(); G.stars=[]; loadLevel(0); });
+}
+document.addEventListener('visibilitychange',()=>{ G.last=performance.now(); });
+window.__g={G,LEVELS,loadLevel,hit};
+</script>
+
+</body>
+</html>
